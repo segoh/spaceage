@@ -17,7 +17,7 @@ public class SynthView extends View {
     private float _y;
     private final int _backgroundColor = Color.BLACK;
     private final int _foregroundColor = Color.GREEN;
-    private OnTouchListener mOnTouchListener = null;
+    private OnTouchListener _onTouchListener = null;
 
     public SynthView(final Context context) {
         super(context);
@@ -61,15 +61,15 @@ public class SynthView extends View {
             invalidate();
         }
 
-        if (mOnTouchListener != null) {
-            return mOnTouchListener.onTouch(this, event);
+        if (_onTouchListener != null) {
+            return _onTouchListener.onTouch(this, event);
         }
         return true;
     }
 
     @Override
     public void setOnTouchListener(final OnTouchListener listener) {
-        mOnTouchListener = listener;
+        _onTouchListener = listener;
     }
 
     private void onActionStart() {
