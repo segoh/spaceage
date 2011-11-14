@@ -10,6 +10,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
 
+import com.github.segoh.control.FreqConversion;
+import com.github.segoh.control.PentatonicFreqConversion;
+
 
 public class SpaceAgeActivity extends Activity implements SensorEventListener {
 
@@ -44,17 +47,15 @@ public class SpaceAgeActivity extends Activity implements SensorEventListener {
     private void setUpControls(final View view) {
         view.setOnTouchListener(new OnTouchListener() {
 
-            private float extractFreq1(final View v, final MotionEvent event) {
-                return 40 + (event.getX() / v.getWidth()) * 600;
-            }
+            private final FreqConversion _freqConv = new PentatonicFreqConversion();
 
-            private float extractFreq2(final View v, final MotionEvent event) {
-                return 40 + ((v.getHeight() - event.getY()) / v.getHeight()) * 600;
+            private float normalizePosition(final float position, final float range) {
+                return java.lang.Math.min(1, java.lang.Math.max(0, position / range));
             }
 
             private void setSynthFreqs(final Synth s, final View v, final MotionEvent event) {
-                _synth.setFreqSaw(extractFreq1(v, event));
-                _synth.setFreqSine(extractFreq2(v, event));
+                _synth.setFreqSaw(_freqConv.toFreq(normalizePosition(event.getX(), v.getWidth())));
+                _synth.setFreqSine(_freqConv.toFreq(normalizePosition(event.getY(), v.getHeight())));
             }
 
             public boolean onTouch(final View v, final MotionEvent event) {
