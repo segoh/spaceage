@@ -10,9 +10,11 @@ import android.view.View;
 
 public class SynthView extends View {
 
+    public static int STEPS = 11;
     private static final float TOUCH_TOLERANCE = 3f;
 
     private final Paint _paint;
+    private final Paint _bgPaint;
     private float _x;
     private float _y;
     private final int _backgroundColor = Color.BLACK;
@@ -29,6 +31,11 @@ public class SynthView extends View {
         _paint.setStyle(Paint.Style.FILL_AND_STROKE);
         _paint.setStrokeWidth(1);
 
+        _bgPaint = new Paint();
+        _bgPaint.setColor(Color.rgb(0x20, 0x20, 0x20));
+        _bgPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+        _bgPaint.setStrokeWidth(1);
+
         _x = 0.0f;
         _y = 0.0f;
 
@@ -38,27 +45,46 @@ public class SynthView extends View {
     @Override
     protected void onDraw(final Canvas canvas) {
         canvas.drawColor(_backgroundColor);
-        canvas.drawLine(0, _y, canvas.getWidth(), _y, _paint);
-        canvas.drawLine(_x, 0, _x, canvas.getHeight(), _paint);
-        canvas.drawCircle(_x, _y, 10, _paint);
+
+        final float stepX = ((float)canvas.getWidth()) / STEPS;
+        final float stepY = ((float)canvas.getHeight()) / STEPS;
+        for (int i = 1; i < STEPS; ++i) {
+            final float x = i * stepX;
+            final float y = i * stepY;
+            canvas.drawLine(0, y, canvas.getWidth(), y, _bgPaint);
+            canvas.drawLine(x, 0, x, canvas.getHeight(), _bgPaint);
+        }
+
+        final float currentX = _x - (_x % stepX);
+        final float currentY = _y - (_y % stepY);
+        canvas.drawRect(currentX, currentY, currentX + stepX, currentY + stepY, _paint);
     }
 
     @Override
     final public boolean onTouchEvent(final MotionEvent event) {
-        float x = event.getX();
-        float y = event.getY();
-        float delta = Math.max(Math.abs(x - _x), Math.abs(y - _y));
+        final float x = event.getX();
+        final float y = event.getY();
+        final float delta = Math.max(Math.abs(x - _x), Math.abs(y - _y));
 
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            onActionStart();
-            invalidate();
-        } else if (event.getAction() == MotionEvent.ACTION_UP) {
-            onActionEnd();
-            invalidate();
-        } else if (delta >= TOUCH_TOLERANCE) {
-            _x = x;
-            _y = y;
-            invalidate();
+        switch (event.getAction() & MotionEvent.ACTION_MASK) {
+            case MotionEvent.ACTION_DOWN: {
+                onActionStart();
+                invalidate();
+                break;
+            }
+            case MotionEvent.ACTION_UP: {
+                onActionEnd();
+                invalidate();
+                break;
+            }
+            case MotionEvent.ACTION_MOVE: {
+                if (delta >= TOUCH_TOLERANCE) {
+                    _x = x;
+                    _y = y;
+                    invalidate();
+                }
+                break;
+            }
         }
 
         if (_onTouchListener != null) {

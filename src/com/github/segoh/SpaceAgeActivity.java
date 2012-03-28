@@ -33,28 +33,35 @@ public class SpaceAgeActivity extends Activity {
         _synth.stop();
     }
 
-    private void setUpControls(final View view) {
+    private void setUpControls(final SynthView view) {
         view.setOnTouchListener(new OnTouchListener() {
 
-            private final FreqConversion _freqConv = new PentatonicFreqConversion();
+            private final FreqConversion _freqConv = new PentatonicFreqConversion(SynthView.STEPS);
 
             private float normalizePosition(final float position, final float range) {
-                return java.lang.Math.min(1, java.lang.Math.max(0, position / range));
+                return Math.min(1, Math.max(0, position / range));
             }
 
             private void setSynthFreqs(final Synth s, final View v, final MotionEvent event) {
                 _synth.setFreqSaw(_freqConv.toFreq(normalizePosition(event.getX(), v.getWidth())));
-                _synth.setFreqSine(_freqConv.toFreq(normalizePosition(event.getY(), v.getHeight())));
+                _synth.setFreqSqr(_freqConv.toFreq(normalizePosition(event.getY(), v.getHeight())));
             }
 
             public boolean onTouch(final View v, final MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                    setSynthFreqs(_synth, v, event);
-                } else if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    _synth.trigger();
-                    setSynthFreqs(_synth, v, event);
-                } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                    _synth.damp();
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_MOVE: {
+                        setSynthFreqs(_synth, v, event);
+                        break;
+                    }
+                    case MotionEvent.ACTION_DOWN: {
+                        _synth.trigger();
+                        setSynthFreqs(_synth, v, event);
+                        break;
+                    }
+                    case MotionEvent.ACTION_UP: {
+                        _synth.damp();
+                        break;
+                    }
                 }
                 return true;
             }
