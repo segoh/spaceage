@@ -13,7 +13,7 @@ public class Synth {
 
     private volatile Thread _audioThread = null;
     private WavetableOsc _oscSaw = null;
-    private WavetableOsc _oscSine = null;
+    private WavetableOsc _oscSqr = null;
     private ExpEnv _env = null;
     private MoogLPF _lpf = null;
 
@@ -42,20 +42,20 @@ public class Synth {
         final Delay delay = new Delay(UGen.SAMPLE_RATE / 4, 0.3f);
 
         _env = new ExpEnv();
-        _env.setFactor(ExpEnv.FACTOR_HARD);
+        _env.setFactor(ExpEnv.FACTOR_SOFT);
 
         _oscSaw = new WavetableOsc();
         _oscSaw.fillWithSaw();
         _oscSaw.setFreq(100);
 
-        _oscSine = new WavetableOsc();
-        _oscSine.fillWithHardSin(7.0f);
-        _oscSine.setFreq(110);
+        _oscSqr = new WavetableOsc();
+        _oscSqr.fillWithSqr();
+        _oscSqr.setFreq(100);
 
-        _lpf = new MoogLPF(100, 0.6f);
+        _lpf = new MoogLPF(1000, 0.6f);
 
         _oscSaw.chuck(_env);
-        _oscSine.chuck(_env);
+        _oscSqr.chuck(_env);
         _env.chuck(_lpf).chuck(delay).chuck(dac);
 
         return dac;
@@ -66,8 +66,8 @@ public class Synth {
         return this;
     }
 
-    public Synth setFreqSine(final float freq) {
-        _oscSine.setFreq(freq);
+    public Synth setFreqSqr(final float freq) {
+        _oscSqr.setFreq(freq);
         return this;
     }
 
