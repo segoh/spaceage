@@ -16,8 +16,10 @@ public class SynthView extends View {
 
     private final int[] _colors = ColorTheme.PEAR_LEMON_FIZZ;
     private final Paint _paint;
+    private final Paint _utilityPaint;
     private final Paint _bgPaint;
-    private final Pointer _pointer = new Pointer();
+    private final Pointer _mainPointer = new Pointer();
+    private final Pointer _utilityPointer = new Pointer();
     private SynthViewListener _synthListener = null;
 
     public SynthView(final Context context) {
@@ -29,11 +31,15 @@ public class SynthView extends View {
         _paint.setStyle(Paint.Style.FILL_AND_STROKE);
         _paint.setStrokeWidth(1);
 
+        _utilityPaint = new Paint();
+        _utilityPaint.setStyle(Paint.Style.STROKE);
+        _utilityPaint.setStrokeWidth(4);
+
         _bgPaint = new Paint();
         _bgPaint.setStyle(Paint.Style.FILL_AND_STROKE);
         _bgPaint.setStrokeWidth(1);
 
-        onActionEnd();
+        onActionMainEnd();
     }
 
     private void updateColor(final Paint paint, final int fieldX, final int fieldY) {
@@ -42,12 +48,25 @@ public class SynthView extends View {
 
     @Override
     protected void onDraw(final Canvas canvas) {
-        canvas.drawColor(Color.BLACK);
-
         final float stepX = ((float)canvas.getWidth()) / STEPS;
         final float stepY = ((float)canvas.getHeight()) / STEPS;
-        final int offset = (int)(stepX * 0.45);
 
+        canvas.drawColor(Color.BLACK);
+
+        // Draw utility position
+        final int utilOffset = (int)(stepX * 0.2);
+        final float utilityX = _utilityPointer.getX() - (_utilityPointer.getX() % stepX);
+        final float utilityY = _utilityPointer.getY() - (_utilityPointer.getY() % stepY);
+        updateColor(_utilityPaint, (int)(utilityX / stepX), (int)(utilityY / stepY));
+        canvas.drawRect(
+                utilityX + utilOffset,
+                utilityY + utilOffset,
+                utilityX + stepX - utilOffset,
+                utilityY + stepY - utilOffset,
+                _utilityPaint);
+
+        // Draw background
+        final int offset = (int)(stepX * 0.45);
         for (int fieldX = 0; fieldX < STEPS; ++fieldX) {
             for (int fieldY = 0; fieldY < STEPS; ++fieldY) {
                 final float x = fieldX * stepX;
@@ -57,8 +76,9 @@ public class SynthView extends View {
             }
         }
 
-        final float currentX = _pointer.getX() - (_pointer.getX() % stepX);
-        final float currentY = _pointer.getY() - (_pointer.getY() % stepY);
+        // Draw main position
+        final float currentX = _mainPointer.getX() - (_mainPointer.getX() % stepX);
+        final float currentY = _mainPointer.getY() - (_mainPointer.getY() % stepY);
         updateColor(_paint, (int)(currentX / stepX), (int)(currentY / stepY));
         canvas.drawRect(currentX, currentY, currentX + stepX, currentY + stepY, _paint);
     }
@@ -69,36 +89,43 @@ public class SynthView extends View {
 
         switch (action & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_DOWN: {
-                _pointer.setId(event.getPointerId(0));
-                onActionStart();
+                _mainPointer.setId(event.getPointerId(0));
+                onActionMainStart();
                 invalidate();
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
-                final int pointerIndex = _pointer.indexForId(event);
-                if (pointerIndex > -1) {
-                    final float x = event.getX(pointerIndex);
-                    final float y = event.getY(pointerIndex);
-                    final float delta = Math.max(
-                            Math.abs(x - _pointer.getX()),
-                            Math.abs(y - _pointer.getY()));
-
-                    if (delta >= TOUCH_TOLERANCE) {
-                        onActionMove(x, y);
-                        invalidate();
-                    }
+                final boolean isMainUpdated = _mainPointer.update(event);
+                if (isMainUpdated) {
+                    onActionMainMove();
+                    invalidate();
+                }
+                final boolean isUtilityUpdated = _utilityPointer.update(event);
+                if (isUtilityUpdated) {
+                    onActionUtilityMode();
+                    invalidate();
                 }
                 break;
             }
             case MotionEvent.ACTION_UP: {
-                _pointer.invalidate();
-                onActionEnd();
+                _mainPointer.invalidate();
+                _utilityPointer.invalidate();
+                onActionMainEnd();
                 invalidate();
                 break;
             }
             case MotionEvent.ACTION_CANCEL: {
-                _pointer.invalidate();
-                onActionEnd();
+                _mainPointer.invalidate();
+                _utilityPointer.invalidate();
+                onActionMainEnd();
+                invalidate();
+                break;
+            }
+            case MotionEvent.ACTION_POINTER_DOWN: {
+                final int pointerIndex = (action & MotionEvent.ACTION_POINTER_INDEX_MASK)
+                        >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
+                final int pointerId = event.getPointerId(pointerIndex);
+                _utilityPointer.setId(pointerId);
                 invalidate();
                 break;
             }
@@ -106,12 +133,15 @@ public class SynthView extends View {
                 final int pointerIndex = (action & MotionEvent.ACTION_POINTER_INDEX_MASK)
                         >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
                 final int pointerId = event.getPointerId(pointerIndex);
-                if (_pointer.isPointer(pointerId)) {
+                if (_mainPointer.isPointer(pointerId)) {
                     final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
-                    onActionMove(event.getX(newPointerIndex), event.getY(newPointerIndex));
-                    _pointer.setId(event.getPointerId(newPointerIndex));
-                    invalidate();
+                    _mainPointer.setX(event.getX(newPointerIndex));
+                    _mainPointer.setY(event.getY(newPointerIndex));
+                    _mainPointer.setId(event.getPointerId(newPointerIndex));
+                    onActionMainMove();
                 }
+                _utilityPointer.invalidate();
+                invalidate();
                 break;
             }
         }
@@ -123,30 +153,33 @@ public class SynthView extends View {
         _synthListener = listener;
     }
 
-    private void onActionStart() {
+    private void onActionMainStart() {
         _paint.setStrokeWidth(1);
         _paint.setMaskFilter(new BlurMaskFilter(2, BlurMaskFilter.Blur.SOLID));
 
         if (_synthListener != null) {
-            _synthListener.onNoteOn(_pointer.normalizedX(), _pointer.normalizedY());
+            _synthListener.onNoteOn(_mainPointer.normalizedX(), _mainPointer.normalizedY());
         }
     }
 
-    private void onActionEnd() {
+    private void onActionMainEnd() {
         _paint.setStrokeWidth(5);
         _paint.setMaskFilter(new BlurMaskFilter(7, BlurMaskFilter.Blur.NORMAL));
 
         if (_synthListener != null) {
-            _synthListener.onNoteOff(_pointer.normalizedX(), _pointer.normalizedY());
+            _synthListener.onNoteOff(_mainPointer.normalizedX(), _mainPointer.normalizedY());
         }
     }
 
-    private void onActionMove(final float x, final float y) {
-        _pointer.setX(x);
-        _pointer.setY(y);
-
+    private void onActionMainMove() {
         if (_synthListener != null) {
-            _synthListener.onNoteChange(_pointer.normalizedX(), _pointer.normalizedY());
+            _synthListener.onNoteChange(_mainPointer.normalizedX(), _mainPointer.normalizedY());
+        }
+    }
+
+    private void onActionUtilityMode() {
+        if (_synthListener != null) {
+            _synthListener.onControlChange(_utilityPointer.normalizedX(), _utilityPointer.normalizedY());
         }
     }
 
@@ -205,7 +238,23 @@ public class SynthView extends View {
         }
 
         public int indexForId(final MotionEvent event) {
-            return event.findPointerIndex(_pointerId);
+            return _pointerId == INVALID_ID ? -1 : event.findPointerIndex(_pointerId);
+        }
+
+        public boolean update(final MotionEvent event) {
+            final int pointerIndex = indexForId(event);
+            if (pointerIndex > -1) {
+                final float x = event.getX(pointerIndex);
+                final float y = event.getY(pointerIndex);
+                final float delta = Math.max(Math.abs(x - _x), Math.abs(y - _y));
+
+                if (delta >= TOUCH_TOLERANCE) {
+                    _x = x;
+                    _y = y;
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

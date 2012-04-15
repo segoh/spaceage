@@ -49,6 +49,10 @@ public class SpaceAgeActivity extends Activity {
                 _synth.setFreqOsc1(_freqConv.toFreq(x));
                 _synth.setFreqOsc2(_freqConv.toFreq(y));
             }
+
+            public void onControlChange(final float x, final float y) {
+                _synth.setCutoff(400.0f + x * x * 4000f);
+            }
         });
     }
 }
