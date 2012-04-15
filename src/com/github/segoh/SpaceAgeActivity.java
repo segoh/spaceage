@@ -43,8 +43,8 @@ public class SpaceAgeActivity extends Activity {
             }
 
             private void setSynthFreqs(final Synth s, final View v, final MotionEvent event) {
-                _synth.setFreqSaw(_freqConv.toFreq(normalizePosition(event.getX(), v.getWidth())));
-                _synth.setFreqSqr(_freqConv.toFreq(normalizePosition(event.getY(), v.getHeight())));
+                _synth.setFreqOsc1(_freqConv.toFreq(normalizePosition(event.getX(), v.getWidth())));
+                _synth.setFreqOsc2(_freqConv.toFreq(normalizePosition(event.getY(), v.getHeight())));
             }
 
             public boolean onTouch(final View v, final MotionEvent event) {

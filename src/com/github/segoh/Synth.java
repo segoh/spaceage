@@ -12,8 +12,8 @@ import android.os.Process;
 public class Synth {
 
     private volatile Thread _audioThread = null;
-    private WavetableOsc _oscSaw = null;
-    private WavetableOsc _oscSqr = null;
+    private WavetableOsc _osc1 = null;
+    private WavetableOsc _osc2 = null;
     private ExpEnv _env = null;
     private MoogLPF _lpf = null;
 
@@ -42,32 +42,32 @@ public class Synth {
         final Delay delay = new Delay(UGen.SAMPLE_RATE / 4, 0.3f);
 
         _env = new ExpEnv();
-        _env.setFactor(ExpEnv.FACTOR_SOFT);
+        _env.setFactor(ExpEnv.FACTOR_HARD);
 
-        _oscSaw = new WavetableOsc();
-        _oscSaw.fillWithSaw();
-        _oscSaw.setFreq(100);
+        _osc1 = new WavetableOsc();
+        _osc1.fillWithSaw();
+        _osc1.setFreq(100);
 
-        _oscSqr = new WavetableOsc();
-        _oscSqr.fillWithSqr();
-        _oscSqr.setFreq(100);
+        _osc2 = new WavetableOsc();
+        _osc2.fillWithSqr();
+        _osc2.setFreq(100);
 
         _lpf = new MoogLPF(1000, 0.6f);
 
-        _oscSaw.chuck(_env);
-        _oscSqr.chuck(_env);
+        _osc1.chuck(_env);
+        _osc2.chuck(_env);
         _env.chuck(_lpf).chuck(delay).chuck(dac);
 
         return dac;
     }
 
-    public Synth setFreqSaw(final float freq) {
-        _oscSaw.setFreq(freq);
+    public Synth setFreqOsc1(final float freq) {
+        _osc1.setFreq(freq);
         return this;
     }
 
-    public Synth setFreqSqr(final float freq) {
-        _oscSqr.setFreq(freq);
+    public Synth setFreqOsc2(final float freq) {
+        _osc2.setFreq(freq);
         return this;
     }
 

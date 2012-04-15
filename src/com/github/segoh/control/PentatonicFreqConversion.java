@@ -7,14 +7,8 @@ public class PentatonicFreqConversion implements FreqConversion {
     private final int _steps;
     private final int [] _scale;
 
-    public PentatonicFreqConversion() {
-        _min = 36;
-        _steps = 11;
-        _scale = new int[] { 0, 3, 5, 7, 10 };
-    }
-
     public PentatonicFreqConversion(final int steps) {
-        _min = 30;
+        _min = 40;
         _steps = steps;
         _scale = new int[] { 0, 3, 5, 7, 10 };
     }
