@@ -43,7 +43,7 @@ public class SynthView extends View {
     }
 
     private void updateColor(final Paint paint, final int fieldX, final int fieldY) {
-        paint.setColor(_colors[(fieldX + fieldY) % _colors.length]);
+        paint.setColor(_colors[(fieldX + (STEPS - 1 - fieldY)) % _colors.length]);
     }
 
     @Override
